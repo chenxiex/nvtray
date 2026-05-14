@@ -1,10 +1,10 @@
 # Maintainer: anlorsp <anlor[at]anlor[dot]top>
-pkgname=nvidia-tray-git
+pkgname=nvtray-git
 pkgver=0.r2.868ca11
 pkgrel=1
 pkgdesc="Linux tray application for ejecting NVIDIA GPU from PCI bus"
 arch=('x86_64' 'aarch64')
-url="https://github.com/chenxiex/nvidia-tray"
+url="https://github.com/anlorsp/nvtray"
 license=('GPL3')
 depends=(
   'python'
@@ -14,7 +14,7 @@ depends=(
   'polkit'
   'python-notify2'
 )
-source=("${pkgname}::git+https://github.com/chenxiex/nvidia-tray.git")
+source=("${pkgname}::git+https://github.com/anlorsp/nvtray.git")
 sha256sums=('SKIP')
 
 pkgver() {
@@ -24,21 +24,21 @@ pkgver() {
 
 package() {
   cd "${pkgname}"
-  install -Dm755 nvidia_tray.py "${pkgdir}/usr/lib/nvidia-tray/nvidia-tray"
+  install -Dm755 nvtray.py "${pkgdir}/usr/lib/nvtray/nvtray"
 
-  install -Dm755 nvidia_eject_helper.py "${pkgdir}/usr/lib/nvidia-tray/nvidia-eject-helper"
-  install -Dm644 i18n.py "${pkgdir}/usr/lib/nvidia-tray/i18n.py"
-  install -Dm644 io.github.anlorsp.nvidia-tray.policy "${pkgdir}/usr/share/polkit-1/actions/io.github.anlorsp.nvidia-tray.policy"
-  install -Dm644 nvidia-tray.service "${pkgdir}/usr/lib/systemd/user/nvidia-tray.service"
+  install -Dm755 nvtray_eject_helper.py "${pkgdir}/usr/lib/nvtray/nvtray-eject-helper"
+  install -Dm644 i18n.py "${pkgdir}/usr/lib/nvtray/i18n.py"
+  install -Dm644 io.github.anlorsp.nvtray.policy "${pkgdir}/usr/share/polkit-1/actions/io.github.anlorsp.nvtray.policy"
+  install -Dm644 nvtray.service "${pkgdir}/usr/lib/systemd/user/nvtray.service"
 
   # Compile and install locale files
-  for po_file in locales/*/LC_MESSAGES/nvidia-tray.po; do
+  for po_file in locales/*/LC_MESSAGES/nvtray.po; do
     lang=$(basename "$(dirname "$(dirname "$po_file")")")
     mo_dir="${pkgdir}/usr/share/locale/$lang/LC_MESSAGES"
     mkdir -p "$mo_dir"
-    msgfmt "$po_file" -o "$mo_dir/nvidia-tray.mo"
+    msgfmt "$po_file" -o "$mo_dir/nvtray.mo"
   done
 
   mkdir -p "${pkgdir}/usr/bin"
-  ln -s /usr/lib/nvidia-tray/nvidia-tray "${pkgdir}/usr/bin/nvidia-tray"
+  ln -s /usr/lib/nvtray/nvtray "${pkgdir}/usr/bin/nvtray"
 }

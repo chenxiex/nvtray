@@ -123,7 +123,7 @@ def main() -> None:
         fail("This helper must run as root (use pkexec).")
 
     if len(sys.argv) != 2:
-        fail("Usage: nvidia_eject_helper.py <PCI_ID>")
+        fail("Usage: nvtray_eject_helper.py <PCI_ID>")
 
     pci_id = validate_pci_id(sys.argv[1])
     ensure_nvidia_device(pci_id)

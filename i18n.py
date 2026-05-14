@@ -2,7 +2,7 @@
 import gettext
 import os
 
-DOMAIN = "nvidia-tray"
+DOMAIN = "nvtray"
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 _LOCALEDIR_SYSTEM = "/usr/share/locale"
 _LOCALEDIR_LOCAL = os.path.join(_SCRIPT_DIR, "locales")

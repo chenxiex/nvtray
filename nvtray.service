@@ -1,11 +1,11 @@
 [Unit]
 Description=NVIDIA GPU Tray Indicator
-Documentation=https://github.com/anlorsp/nvidia-tray
+Documentation=https://github.com/anlorsp/nvtray
 After=graphical-session.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/nvidia-tray
+ExecStart=/usr/bin/nvtray
 Restart=on-failure
 RestartSec=5
 

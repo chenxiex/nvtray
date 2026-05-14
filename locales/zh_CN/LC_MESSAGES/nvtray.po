@@ -1,8 +1,8 @@
-# Chinese (Simplified) translation for nvidia-tray
-# This file is distributed under the same license as nvidia-tray.
+# Chinese (Simplified) translation for nvtray
+# This file is distributed under the same license as nvtray.
 msgid ""
 msgstr ""
-"Project-Id-Version: nvidia-tray\n"
+"Project-Id-Version: nvtray\n"
 "Report-Msgid-Bugs-To: \n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -21,8 +21,8 @@ msgstr "退出"
 msgid "NVIDIA GPU operation failed"
 msgstr "NVIDIA GPU 操作失败"
 
-msgid "Error: nvidia-eject-helper not found"
-msgstr "错误：找不到 nvidia-eject-helper 程序"
+msgid "Error: nvtray-eject-helper not found"
+msgstr "错误：找不到 nvtray-eject-helper 程序"
 
 msgid "NVIDIA GPU operation completed"
 msgstr "NVIDIA GPU 操作完成"

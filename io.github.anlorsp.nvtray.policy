@@ -3,11 +3,11 @@
   "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
   "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
 <policyconfig>
-  <vendor>NVIDIA Tray</vendor>
-  <vendor_url>https://example.local/nvidia-tray</vendor_url>
+  <vendor>nvtray</vendor>
+  <vendor_url>https://github.com/anlorsp/nvtray</vendor_url>
   <icon_name>video-display</icon_name>
 
-  <action id="io.github.anlorsp.nvidia-tray.eject">
+  <action id="io.github.anlorsp.nvtray.eject">
     <description>Eject NVIDIA GPU from PCI bus</description>
     <message>Authentication is required to eject an NVIDIA GPU.</message>
     <defaults>
@@ -15,6 +15,6 @@
       <allow_inactive>auth_admin</allow_inactive>
       <allow_active>auth_admin_keep</allow_active>
     </defaults>
-    <annotate key="org.freedesktop.policykit.exec.path">/usr/local/libexec/nvidia-eject-helper</annotate>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/nvtray/nvtray-eject-helper</annotate>
   </action>
 </policyconfig>

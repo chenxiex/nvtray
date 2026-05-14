@@ -18,7 +18,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import GLib, Gtk  # noqa: E402
 
 
-logger = logging.getLogger("nvidia-tray")
+logger = logging.getLogger("nvtray")
 
 
 @dataclass
@@ -32,7 +32,7 @@ def _get_config_path() -> str:
     xdg_config_home = os.environ.get("XDG_CONFIG_HOME")
     if not xdg_config_home:
         xdg_config_home = os.path.join(os.path.expanduser("~"), ".config")
-    return os.path.join(xdg_config_home, "nvidia-tray", "config.ini")
+    return os.path.join(xdg_config_home, "nvtray", "config.ini")
 
 
 def _load_hook_config() -> HookConfig:
@@ -94,9 +94,9 @@ def list_nvidia_pci_ids() -> List[str]:
     return result
 
 
-class NvidiaTrayApp:
+class NvTrayApp:
     def __init__(self) -> None:
-        notify2.init("nvidia-tray")
+        notify2.init("nvtray")
         self.hooks = _load_hook_config()
         
         self.indicator = self._create_indicator()
@@ -119,7 +119,7 @@ class NvidiaTrayApp:
         env.update(env_extra)
         logger.info(
             "Executing hook command event=%s command=%r timeout=%ss",
-            env_extra.get("NVIDIA_TRAY_EVENT", "unknown"),
+            env_extra.get("NVTRAY_EVENT", "unknown"),
             hook_command,
             timeout,
         )
@@ -142,7 +142,7 @@ class NvidiaTrayApp:
                 logger.error(
                     "Async hook failed name=%s pci_id=%s error=%s",
                     hook_name,
-                    env_extra.get("NVIDIA_TRAY_PCI_ID", ""),
+                    env_extra.get("NVTRAY_PCI_ID", ""),
                     exc,
                 )
                 GLib.idle_add(
@@ -158,7 +158,7 @@ class NvidiaTrayApp:
                 logger.error(
                     "Async hook exited non-zero name=%s pci_id=%s rc=%s stderr=%s",
                     hook_name,
-                    env_extra.get("NVIDIA_TRAY_PCI_ID", ""),
+                    env_extra.get("NVTRAY_PCI_ID", ""),
                     completed.returncode,
                     completed.stderr.strip(),
                 )
@@ -173,7 +173,7 @@ class NvidiaTrayApp:
             logger.info(
                 "Async hook completed name=%s pci_id=%s rc=0",
                 hook_name,
-                env_extra.get("NVIDIA_TRAY_PCI_ID", ""),
+                env_extra.get("NVTRAY_PCI_ID", ""),
             )
 
         threading.Thread(target=_worker, daemon=True).start()
@@ -182,8 +182,8 @@ class NvidiaTrayApp:
         if not self.hooks.before_eject:
             return True
         env_extra = {
-            "NVIDIA_TRAY_EVENT": "before_eject",
-            "NVIDIA_TRAY_PCI_ID": pci_id,
+            "NVTRAY_EVENT": "before_eject",
+            "NVTRAY_PCI_ID": pci_id,
         }
         try:
             completed = self._run_hook(self.hooks.before_eject, env_extra)
@@ -219,7 +219,7 @@ class NvidiaTrayApp:
             from gi.repository import AyatanaAppIndicator3
 
             indicator = AyatanaAppIndicator3.Indicator.new(
-                "nvidia-tray",
+                "nvtray",
                 "video-display",
                 AyatanaAppIndicator3.IndicatorCategory.HARDWARE,
             )
@@ -231,7 +231,7 @@ class NvidiaTrayApp:
             from gi.repository import AppIndicator3
 
             indicator = AppIndicator3.Indicator.new(
-                "nvidia-tray",
+                "nvtray",
                 "video-display",
                 AppIndicator3.IndicatorCategory.HARDWARE,
             )
@@ -271,23 +271,23 @@ class NvidiaTrayApp:
 
     def _find_helper(self) -> Optional[str]:
         # 1. Search in PATH
-        helper = shutil.which("nvidia-eject-helper")
+        helper = shutil.which("nvtray-eject-helper")
         if helper:
             return helper
 
         # 2. Check common install locations
         common_paths = [
-            "/usr/lib/nvidia-tray/nvidia-eject-helper",
-            "/usr/local/lib/nvidia-tray/nvidia-eject-helper",
-            "/usr/libexec/nvidia-eject-helper",
-            "/usr/local/libexec/nvidia-eject-helper",
+            "/usr/lib/nvtray/nvtray-eject-helper",
+            "/usr/local/lib/nvtray/nvtray-eject-helper",
+            "/usr/libexec/nvtray-eject-helper",
+            "/usr/local/libexec/nvtray-eject-helper",
         ]
         for path in common_paths:
             if os.path.isfile(path) and os.access(path, os.X_OK):
                 return path
 
         # 3. Fall back to development version in script directory
-        local_helper = os.path.join(os.path.dirname(os.path.abspath(__file__)), "nvidia_eject_helper.py")
+        local_helper = os.path.join(os.path.dirname(os.path.abspath(__file__)), "nvtray_eject_helper.py")
         if os.path.isfile(local_helper):
             return local_helper
 
@@ -301,7 +301,7 @@ class NvidiaTrayApp:
         if not helper_path:
             self._send_notification(
                 _("NVIDIA GPU operation failed"),
-                _("Error: nvidia-eject-helper not found"),
+                _("Error: nvtray-eject-helper not found"),
                 notify2.URGENCY_CRITICAL,
             )
             return
@@ -330,9 +330,9 @@ class NvidiaTrayApp:
             "after_eject",
             self.hooks.after_eject,
             {
-                "NVIDIA_TRAY_EVENT": "after_eject",
-                "NVIDIA_TRAY_PCI_ID": pci_id,
-                "NVIDIA_TRAY_EJECT_SUCCESS": "1" if eject_success else "0",
+                "NVTRAY_EVENT": "after_eject",
+                "NVTRAY_PCI_ID": pci_id,
+                "NVTRAY_EJECT_SUCCESS": "1" if eject_success else "0",
             },
         )
         GLib.idle_add(self.refresh_ui)
@@ -372,8 +372,8 @@ class NvidiaTrayApp:
                         "gpu_added",
                         self.hooks.gpu_added,
                         {
-                            "NVIDIA_TRAY_EVENT": "gpu_added",
-                            "NVIDIA_TRAY_PCI_ID": device.sys_name,
+                            "NVTRAY_EVENT": "gpu_added",
+                            "NVTRAY_PCI_ID": device.sys_name,
                         },
                     )
                 if action in {"add", "remove", "change", "bind", "unbind"}:
@@ -393,7 +393,7 @@ def main() -> None:
         level=logging.INFO,
         format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
     )
-    NvidiaTrayApp()
+    NvTrayApp()
     Gtk.main()
 
 

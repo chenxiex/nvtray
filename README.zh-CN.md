@@ -1,4 +1,4 @@
-# nvidia-tray
+# nvtray
 
 Linux 托盘程序：检测 NVIDIA PCI 设备并提供“弹出 NVIDIA GPU”菜单项。
 [English](README.md)
@@ -27,7 +27,7 @@ Arch Linux 可直接使用 PKGBUILD。
 ## 安装
 
 ```bash
-cd /path/to/nvidia-tray
+cd /path/to/nvtray
 sudo ./install.sh
 ```
 
@@ -38,19 +38,19 @@ Arch Linux 可直接使用 PKGBUILD。
 手动运行：
 
 ```bash
-nvidia-tray
+nvtray
 ```
 
 启用开机自启动（推荐）：
 
 ```bash
-systemctl --user enable --now nvidia-tray.service
+systemctl --user enable --now nvtray.service
 ```
 
 停止并禁用自启动：
 
 ```bash
-systemctl --user disable --now nvidia-tray.service
+systemctl --user disable --now nvtray.service
 ```
 
 ## Hook 命令
@@ -58,28 +58,28 @@ systemctl --user disable --now nvidia-tray.service
 可在以下事件执行自定义 bash 命令：
 
 - `gpu_added`：udev 检测到 NVIDIA 显示控制器后
-- `before_eject`：执行 `pkexec nvidia-eject-helper <pci_id>` 前
+- `before_eject`：执行 `pkexec nvtray-eject-helper <pci_id>` 前
 - `after_eject`：弹出命令结束后（无论成功或失败）
 
 配置文件路径遵循 XDG Base Directory 规范：
 
-- `$XDG_CONFIG_HOME/nvidia-tray/config.ini`
-- 若未设置 `XDG_CONFIG_HOME`：`~/.config/nvidia-tray/config.ini`
+- `$XDG_CONFIG_HOME/nvtray/config.ini`
+- 若未设置 `XDG_CONFIG_HOME`：`~/.config/nvtray/config.ini`
 
 示例配置：
 
 ```ini
 [hooks]
 gpu_added = /home/user/.local/bin/nvidia-gpu-added.sh
-before_eject = logger -t nvidia-tray "about to eject $NVIDIA_TRAY_PCI_ID" && /home/user/.local/bin/check-safe.sh
-after_eject = [ "$NVIDIA_TRAY_EJECT_SUCCESS" = "1" ] && notify-send "GPU ejected" "$NVIDIA_TRAY_PCI_ID"
+before_eject = logger -t nvtray "about to eject $NVTRAY_PCI_ID" && /home/user/.local/bin/check-safe.sh
+after_eject = [ "$NVTRAY_EJECT_SUCCESS" = "1" ] && notify-send "GPU ejected" "$NVTRAY_PCI_ID"
 ```
 
 每个 Hook 会收到以下环境变量：
 
-- `NVIDIA_TRAY_EVENT`：`gpu_added`、`before_eject` 或 `after_eject`
-- `NVIDIA_TRAY_PCI_ID`：例如 `0000:01:00.0`
-- `NVIDIA_TRAY_EJECT_SUCCESS`：仅 `after_eject` 有，值为 `1` 或 `0`
+- `NVTRAY_EVENT`：`gpu_added`、`before_eject` 或 `after_eject`
+- `NVTRAY_PCI_ID`：例如 `0000:01:00.0`
+- `NVTRAY_EJECT_SUCCESS`：仅 `after_eject` 有，值为 `1` 或 `0`
 
 说明：
 

@@ -1,5 +1,5 @@
 [project]
-name = "nvidia-tray"
+name = "nvtray"
 version = "0.1.0"
 description = "Linux tray application for ejecting NVIDIA GPU from PCI bus"
 readme = "README.md"
