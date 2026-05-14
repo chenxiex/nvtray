@@ -73,26 +73,58 @@ install_nvtray() {
 remove_nvtray() {
     python - <<'PY'
 import importlib.metadata
-import os
+import shutil
+import sysconfig
 from pathlib import Path
 
 try:
     dist = importlib.metadata.distribution("nvtray")
 except importlib.metadata.PackageNotFoundError:
-    raise SystemExit("nvtray is not installed as a Python distribution.")
+    dist = None
 
-paths = []
-for entry in dist.files or []:
-    path = Path(dist.locate_file(entry))
-    if path.exists() or path.is_symlink():
-        paths.append(path)
+paths = set()
+remove_trees = set()
+
+if dist is not None:
+    remove_trees.add(Path(dist.locate_file("nvtray")))
+    dist_info_path = getattr(dist, "_path", None)
+    if dist_info_path is not None:
+        remove_trees.add(Path(dist_info_path))
+
+    for entry in dist.files or []:
+        path = Path(dist.locate_file(entry))
+        if path.exists() or path.is_symlink():
+            paths.add(path)
+
+# Also handle stale files left after an interrupted or older script install.
+for scheme_name in ("purelib", "platlib"):
+    scheme_path = sysconfig.get_paths().get(scheme_name)
+    if scheme_path is None:
+        continue
+    site_path = Path(scheme_path)
+    if not site_path.exists():
+        continue
+    remove_trees.add(site_path / "nvtray")
+    remove_trees.update(site_path.glob("nvtray-*.dist-info"))
+
+for site_path in Path("/usr/lib").glob("python*/site-packages"):
+    if not site_path.exists():
+        continue
+    remove_trees.add(site_path / "nvtray")
+    remove_trees.update(site_path.glob("nvtray-*.dist-info"))
 
 for path in sorted(paths, key=lambda item: len(item.parts), reverse=True):
     if path.is_dir() and not path.is_symlink():
         continue
     path.unlink(missing_ok=True)
 
-for path in sorted({p.parent for p in paths}, key=lambda item: len(item.parts), reverse=True):
+for path in sorted(remove_trees, key=lambda item: len(item.parts), reverse=True):
+    if path.exists() and not path.is_symlink():
+        shutil.rmtree(path)
+    elif path.is_symlink():
+        path.unlink()
+
+for path in sorted({p.parent for p in paths} | {p.parent for p in remove_trees}, key=lambda item: len(item.parts), reverse=True):
     try:
         path.rmdir()
     except OSError:
@@ -100,12 +132,14 @@ for path in sorted({p.parent for p in paths}, key=lambda item: len(item.parts), 
 
 for script in ("/usr/bin/nvtray", "/usr/bin/nvtray-eject-helper"):
     try:
-        os.unlink(script)
+        Path(script).unlink()
     except FileNotFoundError:
         pass
 
 print("Removed nvtray Python distribution files.")
 PY
+
+    remove_legacy_script_install
 
     echo ""
     echo "If autostart was enabled for the current user, you can disable it with:"

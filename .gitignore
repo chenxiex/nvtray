@@ -11,4 +11,4 @@ wheels/
 
 # Arch Linux package build files
 *.pkg.tar.zst
-nvidia-tray-git
+nvtray-git
