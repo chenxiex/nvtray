@@ -4,7 +4,7 @@ pkgver=0.r2.868ca11
 pkgrel=1
 pkgdesc="Linux tray application for ejecting NVIDIA GPU from PCI bus"
 arch=('x86_64' 'aarch64')
-url="https://github.com/anlorsp/nvtray"
+url="https://github.com/chenxiex/nvtray"
 license=('GPL3')
 depends=(
   'python'
@@ -22,7 +22,7 @@ makedepends=(
   'python-wheel'
   'gettext'
 )
-source=("${pkgname}::git+https://github.com/anlorsp/nvtray.git")
+source=("${pkgname}::git+https://github.com/chenxiex/nvtray.git")
 sha256sums=('SKIP')
 
 pkgver() {
