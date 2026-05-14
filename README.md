@@ -75,6 +75,9 @@ Example config:
 gpu_added = /home/user/.local/bin/nvidia-gpu-added.sh
 before_eject = logger -t nvtray "about to eject $NVTRAY_PCI_ID" && /home/user/.local/bin/check-safe.sh
 after_eject = [ "$NVTRAY_EJECT_SUCCESS" = "1" ] && notify-send "GPU ejected" "$NVTRAY_PCI_ID"
+
+[eject]
+unload_modules = false
 ```
 
 Each hook receives these environment variables:
@@ -90,6 +93,10 @@ Notes:
 - `before_eject` is blocking. If it exits non-zero, GPU eject is aborted.
 - `gpu_added` and `after_eject` run asynchronously.
 
+Eject options:
+
+- `unload_modules`: when set to `true`, the helper attempts to unload NVIDIA kernel modules after removing the PCI device. This is disabled by default.
+
 ## Notes
 
 - The helper only accepts well-formed PCI IDs and verifies that the device vendor is NVIDIA.
@@ -98,7 +105,7 @@ Notes:
   - If any processes are found, ejection is refused and their names and PIDs are shown
 - **Eject procedure**:
   - Writes to the PCI device's `remove` sysfs interface to remove the device from the bus
-  - Attempts to unload NVIDIA kernel modules (`nvidia_uvm`, `nvidia_drm`, `nvidia_modeset`, `nvidia`)
+  - Optionally unloads NVIDIA kernel modules (`nvidia_uvm`, `nvidia_drm`, `nvidia_modeset`, `nvidia`) when `eject.unload_modules = true`
 - The default polkit policy requires administrator authentication (cached for active sessions).
 
 ## Localization

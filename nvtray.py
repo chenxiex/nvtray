@@ -22,10 +22,11 @@ logger = logging.getLogger("nvtray")
 
 
 @dataclass
-class HookConfig:
+class AppConfig:
     gpu_added: Optional[str]
     before_eject: Optional[str]
     after_eject: Optional[str]
+    unload_modules: bool = False
 
 
 def _get_config_path() -> str:
@@ -35,31 +36,39 @@ def _get_config_path() -> str:
     return os.path.join(xdg_config_home, "nvtray", "config.ini")
 
 
-def _load_hook_config() -> HookConfig:
+def _load_config() -> AppConfig:
     config_path = _get_config_path()
     parser = configparser.ConfigParser()
     try:
         with open(config_path, "r", encoding="utf-8") as file:
             parser.read_file(file)
     except FileNotFoundError:
-        logger.info("Hook config not found, using defaults: %s", config_path)
-        return HookConfig(gpu_added=None, before_eject=None, after_eject=None)
+        logger.info("Config not found, using defaults: %s", config_path)
+        return AppConfig(gpu_added=None, before_eject=None, after_eject=None)
     except (OSError, configparser.Error) as exc:
         logger.warning("Failed to read config file %s: %s", config_path, exc)
-        return HookConfig(gpu_added=None, before_eject=None, after_eject=None)
+        return AppConfig(gpu_added=None, before_eject=None, after_eject=None)
 
     hooks = parser["hooks"] if parser.has_section("hooks") else {}
-    loaded = HookConfig(
+    try:
+        unload_modules = parser.getboolean("eject", "unload_modules", fallback=False)
+    except ValueError as exc:
+        logger.warning("Invalid eject.unload_modules value in %s: %s", config_path, exc)
+        unload_modules = False
+
+    loaded = AppConfig(
         gpu_added=hooks.get("gpu_added") or None,
         before_eject=hooks.get("before_eject") or None,
         after_eject=hooks.get("after_eject") or None,
+        unload_modules=unload_modules,
     )
     logger.info(
-        "Loaded hook config from %s (gpu_added=%s, before_eject=%s, after_eject=%s)",
+        "Loaded config from %s (gpu_added=%s, before_eject=%s, after_eject=%s, unload_modules=%s)",
         config_path,
         bool(loaded.gpu_added),
         bool(loaded.before_eject),
         bool(loaded.after_eject),
+        loaded.unload_modules,
     )
     return loaded
 
@@ -97,7 +106,7 @@ def list_nvidia_pci_ids() -> List[str]:
 class NvTrayApp:
     def __init__(self) -> None:
         notify2.init("nvtray")
-        self.hooks = _load_hook_config()
+        self.config = _load_config()
         
         self.indicator = self._create_indicator()
         self.context = pyudev.Context()
@@ -179,14 +188,14 @@ class NvTrayApp:
         threading.Thread(target=_worker, daemon=True).start()
 
     def _run_before_eject_hook(self, pci_id: str) -> bool:
-        if not self.hooks.before_eject:
+        if not self.config.before_eject:
             return True
         env_extra = {
             "NVTRAY_EVENT": "before_eject",
             "NVTRAY_PCI_ID": pci_id,
         }
         try:
-            completed = self._run_hook(self.hooks.before_eject, env_extra)
+            completed = self._run_hook(self.config.before_eject, env_extra)
         except (ValueError, OSError, subprocess.TimeoutExpired) as exc:
             logger.error("before_eject hook failed pci_id=%s error=%s", pci_id, exc)
             self._send_notification(
@@ -306,7 +315,10 @@ class NvTrayApp:
             )
             return
 
-        cmd = ["pkexec", helper_path, pci_id]
+        cmd = ["pkexec", helper_path]
+        if self.config.unload_modules:
+            cmd.append("--unload-modules")
+        cmd.append(pci_id)
         completed = subprocess.run(cmd, capture_output=True, text=True)
         eject_success = completed.returncode == 0
         if completed.returncode != 0:
@@ -328,7 +340,7 @@ class NvTrayApp:
 
         self._run_hook_in_thread(
             "after_eject",
-            self.hooks.after_eject,
+            self.config.after_eject,
             {
                 "NVTRAY_EVENT": "after_eject",
                 "NVTRAY_PCI_ID": pci_id,
@@ -370,7 +382,7 @@ class NvTrayApp:
                 if action == "add" and self._is_nvidia_display_device(device):
                     self._run_hook_in_thread(
                         "gpu_added",
-                        self.hooks.gpu_added,
+                        self.config.gpu_added,
                         {
                             "NVTRAY_EVENT": "gpu_added",
                             "NVTRAY_PCI_ID": device.sys_name,

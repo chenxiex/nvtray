@@ -43,5 +43,8 @@ msgid ""
 msgstr ""
 "已成功移除 NVIDIA GPU（%s），但部分内核模块卸载失败。如需完全卸载，请重启系统。"
 
+msgid "NVIDIA GPU (%s) removed successfully"
+msgstr "已成功移除 NVIDIA GPU（%s）"
+
 msgid "NVIDIA GPU (%s) ejected and all kernel modules unloaded successfully"
 msgstr "已成功弹出 NVIDIA GPU（%s）并卸载所有内核模块"

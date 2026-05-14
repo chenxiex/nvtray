@@ -118,14 +118,25 @@ def unload_nvidia_modules() -> List[str]:
     return failed_modules
 
 
+def parse_args() -> Tuple[str, bool]:
+    unload_modules = False
+    args = sys.argv[1:]
+
+    if args and args[0] == "--unload-modules":
+        unload_modules = True
+        args = args[1:]
+
+    if len(args) != 1:
+        fail("Usage: nvtray_eject_helper.py [--unload-modules] <PCI_ID>")
+
+    return validate_pci_id(args[0]), unload_modules
+
+
 def main() -> None:
     if os.geteuid() != 0:
         fail("This helper must run as root (use pkexec).")
 
-    if len(sys.argv) != 2:
-        fail("Usage: nvtray_eject_helper.py <PCI_ID>")
-
-    pci_id = validate_pci_id(sys.argv[1])
+    pci_id, should_unload_modules = parse_args()
     ensure_nvidia_device(pci_id)
     
     # Check for running processes using the GPU
@@ -138,6 +149,10 @@ def main() -> None:
 
     # Remove PCI device directly
     remove_pci_device(pci_id)
+
+    if not should_unload_modules:
+        print(_("NVIDIA GPU (%s) removed successfully") % pci_id)
+        return
 
     # Attempt to unload NVIDIA kernel modules and check results
     failed_modules = unload_nvidia_modules()
