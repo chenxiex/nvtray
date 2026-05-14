@@ -23,17 +23,25 @@ Linux tray application that detects NVIDIA PCI devices and provides an "Eject NV
 - `policykit-1`
 - `python3-notify2`
 - `gettext` (for locale file compilation, build-time only)
+- Python build tools: `build`, `installer`, `setuptools`, and `wheel` (build-time only)
 
 Arch Linux: use the provided PKGBUILD.
 
 ## Installation
+
+Build and install the wheel:
 
 ```bash
 cd /path/to/nvtray
 sudo ./install.sh
 ```
 
-Arch Linux: use the provided PKGBUILD.
+This installs standard Python entry points:
+
+- `/usr/bin/nvtray`
+- `/usr/bin/nvtray-eject-helper`
+
+Arch Linux: use the provided PKGBUILD; it builds a wheel and installs it into the package image with `python -m installer`.
 
 ## Usage
 
@@ -110,9 +118,9 @@ Eject options:
 
 ## Localization
 
-Translations are stored as gettext `.po` files under `locales/`. Compiled `.mo` files are included in the repository.
+Translations are stored as gettext `.po` files under `src/nvtray/locales/`. Compiled `.mo` files are included in the repository.
 
 To add a new language:
-1. Create `locales/<lang>/LC_MESSAGES/nvtray.po` based on the existing `zh_CN` file
-2. Compile: `msgfmt locales/<lang>/LC_MESSAGES/nvtray.po -o locales/<lang>/LC_MESSAGES/nvtray.mo`
-3. Update `install.sh` and `PKGBUILD` to install the new locale file
+1. Create `src/nvtray/locales/<lang>/LC_MESSAGES/nvtray.po` based on the existing `zh_CN` file
+2. Compile: `msgfmt src/nvtray/locales/<lang>/LC_MESSAGES/nvtray.po -o src/nvtray/locales/<lang>/LC_MESSAGES/nvtray.mo`
+3. Add the new `.mo` path to `pyproject.toml` if it should be installed under `/usr/share/locale`

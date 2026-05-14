@@ -6,7 +6,10 @@ import subprocess
 import sys
 from typing import List, Tuple
 
-from i18n import _
+try:
+    from .i18n import _
+except ImportError:
+    from i18n import _
 
 PCI_ID_PATTERN = re.compile(r"^[0-9a-fA-F]{4}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-7]$")
 
@@ -127,7 +130,7 @@ def parse_args() -> Tuple[str, bool]:
         args = args[1:]
 
     if len(args) != 1:
-        fail("Usage: nvtray_eject_helper.py [--unload-modules] <PCI_ID>")
+        fail("Usage: nvtray-eject-helper [--unload-modules] <PCI_ID>")
 
     return validate_pci_id(args[0]), unload_modules
 

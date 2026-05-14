@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import configparser
 import logging
 import os
@@ -12,7 +11,10 @@ import gi
 import notify2
 import pyudev
 
-from i18n import _
+try:
+    from .i18n import _
+except ImportError:
+    from i18n import _
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib, Gtk  # noqa: E402
@@ -286,8 +288,8 @@ class NvTrayApp:
 
         # 2. Check common install locations
         common_paths = [
-            "/usr/lib/nvtray/nvtray-eject-helper",
-            "/usr/local/lib/nvtray/nvtray-eject-helper",
+            "/usr/bin/nvtray-eject-helper",
+            "/usr/local/bin/nvtray-eject-helper",
             "/usr/libexec/nvtray-eject-helper",
             "/usr/local/libexec/nvtray-eject-helper",
         ]
@@ -295,8 +297,8 @@ class NvTrayApp:
             if os.path.isfile(path) and os.access(path, os.X_OK):
                 return path
 
-        # 3. Fall back to development version in script directory
-        local_helper = os.path.join(os.path.dirname(os.path.abspath(__file__)), "nvtray_eject_helper.py")
+        # 3. Fall back to development version in package directory
+        local_helper = os.path.join(os.path.dirname(os.path.abspath(__file__)), "eject_helper.py")
         if os.path.isfile(local_helper):
             return local_helper
 

@@ -21,17 +21,25 @@ Linux 托盘程序：检测 NVIDIA PCI 设备并提供“弹出 NVIDIA GPU”菜
 - `policykit-1`
 - `python3-notify2`
 - `gettext`
+- Python 构建工具：`build`、`installer`、`setuptools`、`wheel`
 
 Arch Linux 可直接使用 PKGBUILD。
 
 ## 安装
+
+构建 wheel 并安装：
 
 ```bash
 cd /path/to/nvtray
 sudo ./install.sh
 ```
 
-Arch Linux 可直接使用 PKGBUILD。
+安装后会生成标准 Python 入口：
+
+- `/usr/bin/nvtray`
+- `/usr/bin/nvtray-eject-helper`
+
+Arch Linux 可直接使用 PKGBUILD；它会先构建 wheel，再用 `python -m installer` 安装到打包目录。
 
 ## 运行
 

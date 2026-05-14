@@ -1,9 +1,14 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "nvtray"
 version = "0.1.0"
 description = "Linux tray application for ejecting NVIDIA GPU from PCI bus"
 readme = "README.md"
 requires-python = ">=3.11"
+license = "GPL-3.0-or-later"
 dependencies = [
     "dbus-python>=1.4.0",
     "notify2>=0.3.1",
@@ -11,7 +16,29 @@ dependencies = [
     "pyudev>=0.24.4",
 ]
 
+[project.scripts]
+nvtray = "nvtray.app:main"
+nvtray-eject-helper = "nvtray.eject_helper:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+nvtray = ["locales/*/LC_MESSAGES/*.mo", "locales/*/LC_MESSAGES/*.po"]
+
+[tool.setuptools.data-files]
+"share/polkit-1/actions" = ["io.github.anlorsp.nvtray.policy"]
+"lib/systemd/user" = ["nvtray.service"]
+"share/locale/zh_CN/LC_MESSAGES" = ["src/nvtray/locales/zh_CN/LC_MESSAGES/nvtray.mo"]
+
 [dependency-groups]
 dev = [
+    "build>=1.2.2",
+    "installer>=0.7.0",
     "pygobject-stubs>=2.16.0",
+    "setuptools>=69",
+    "wheel>=0.45.0",
 ]

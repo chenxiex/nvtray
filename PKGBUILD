@@ -14,6 +14,14 @@ depends=(
   'polkit'
   'python-notify2'
 )
+makedepends=(
+  'git'
+  'python-build'
+  'python-installer'
+  'python-setuptools'
+  'python-wheel'
+  'gettext'
+)
 source=("${pkgname}::git+https://github.com/anlorsp/nvtray.git")
 sha256sums=('SKIP')
 
@@ -22,23 +30,17 @@ pkgver() {
   echo "0.r$(git rev-list --count HEAD).$(git rev-parse --short HEAD)"
 }
 
-package() {
+build() {
   cd "${pkgname}"
-  install -Dm755 nvtray.py "${pkgdir}/usr/lib/nvtray/nvtray"
 
-  install -Dm755 nvtray_eject_helper.py "${pkgdir}/usr/lib/nvtray/nvtray-eject-helper"
-  install -Dm644 i18n.py "${pkgdir}/usr/lib/nvtray/i18n.py"
-  install -Dm644 io.github.anlorsp.nvtray.policy "${pkgdir}/usr/share/polkit-1/actions/io.github.anlorsp.nvtray.policy"
-  install -Dm644 nvtray.service "${pkgdir}/usr/lib/systemd/user/nvtray.service"
-
-  # Compile and install locale files
-  for po_file in locales/*/LC_MESSAGES/nvtray.po; do
-    lang=$(basename "$(dirname "$(dirname "$po_file")")")
-    mo_dir="${pkgdir}/usr/share/locale/$lang/LC_MESSAGES"
-    mkdir -p "$mo_dir"
-    msgfmt "$po_file" -o "$mo_dir/nvtray.mo"
+  for po_file in src/nvtray/locales/*/LC_MESSAGES/nvtray.po; do
+    msgfmt "$po_file" -o "${po_file%.po}.mo"
   done
 
-  mkdir -p "${pkgdir}/usr/bin"
-  ln -s /usr/lib/nvtray/nvtray "${pkgdir}/usr/bin/nvtray"
+  python -m build --wheel --no-isolation
+}
+
+package() {
+  cd "${pkgname}"
+  python -m installer --destdir="${pkgdir}" --prefix=/usr dist/*.whl
 }

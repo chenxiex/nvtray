@@ -2,66 +2,111 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
-shopt -s nullglob
 
 usage() {
     echo "Usage: $0 [-r]"
     echo "  -r    remove installed files"
 }
 
-install_nvtray() {
-    install -Dm755 "$ROOT_DIR/nvtray_eject_helper.py" /usr/lib/nvtray/nvtray-eject-helper
-    install -Dm644 "$ROOT_DIR/i18n.py" /usr/lib/nvtray/i18n.py
-    install -Dm644 "$ROOT_DIR/io.github.anlorsp.nvtray.policy" /usr/share/polkit-1/actions/io.github.anlorsp.nvtray.policy
-    install -Dm755 "$ROOT_DIR/nvtray.py" /usr/lib/nvtray/nvtray
-    ln -sf /usr/lib/nvtray/nvtray /usr/bin/nvtray
-    install -Dm644 "$ROOT_DIR/nvtray.service" /usr/lib/systemd/user/nvtray.service
+require_command() {
+    if ! command -v "$1" >/dev/null 2>&1; then
+        echo "Error: required command not found: $1" >&2
+        exit 1
+    fi
+}
 
-    # Install locale files
-    for po_file in "$ROOT_DIR"/locales/*/LC_MESSAGES/nvtray.po; do
-        lang=$(basename "$(dirname "$(dirname "$po_file")")")
-        mo_dir="/usr/share/locale/$lang/LC_MESSAGES"
-        mkdir -p "$mo_dir"
-        msgfmt "$po_file" -o "$mo_dir/nvtray.mo"
+require_python_module() {
+    if ! python -c "import $1" >/dev/null 2>&1; then
+        echo "Error: required Python module not found: $1" >&2
+        exit 1
+    fi
+}
+
+compile_locales() {
+    shopt -s nullglob
+    for po_file in "$ROOT_DIR"/src/nvtray/locales/*/LC_MESSAGES/nvtray.po; do
+        msgfmt "$po_file" -o "${po_file%.po}.mo"
     done
+}
 
-    echo "Installed:"
-    echo "  /usr/bin/nvtray -> /usr/lib/nvtray/nvtray"
-    echo "  /usr/lib/nvtray/nvtray-eject-helper"
-    echo "  /usr/lib/nvtray/i18n.py"
+build_wheel() {
+    rm -rf "$ROOT_DIR/dist"
+    (cd "$ROOT_DIR" && python -m build --wheel --no-isolation)
+}
+
+remove_legacy_script_install() {
+    if [[ -L /usr/bin/nvtray && "$(readlink /usr/bin/nvtray)" == "/usr/lib/nvtray/nvtray" ]]; then
+        rm -f /usr/bin/nvtray
+    fi
+
+    rm -f /usr/lib/nvtray/nvtray
+    rm -f /usr/lib/nvtray/nvtray-eject-helper
+    rm -f /usr/lib/nvtray/i18n.py
+    rmdir --ignore-fail-on-non-empty /usr/lib/nvtray 2>/dev/null || true
+}
+
+install_nvtray() {
+    require_command msgfmt
+    require_command python
+    require_python_module build
+    require_python_module installer
+    require_python_module setuptools
+    require_python_module wheel
+
+    compile_locales
+    build_wheel
+    remove_legacy_script_install
+    python -m installer --destdir / --prefix /usr --overwrite-existing "$ROOT_DIR"/dist/nvtray-*.whl
+
+    echo "Installed nvtray from wheel."
+    echo "Installed commands:"
+    echo "  /usr/bin/nvtray"
+    echo "  /usr/bin/nvtray-eject-helper"
+    echo "Installed integration files:"
     echo "  /usr/share/polkit-1/actions/io.github.anlorsp.nvtray.policy"
     echo "  /usr/lib/systemd/user/nvtray.service"
-    echo "  locale files under /usr/share/locale/"
     echo ""
     echo "To enable autostart:"
     echo "  systemctl --user enable --now nvtray.service"
 }
 
 remove_nvtray() {
-    if [[ -L /usr/bin/nvtray && "$(readlink /usr/bin/nvtray)" == "/usr/lib/nvtray/nvtray" ]]; then
-        rm -f /usr/bin/nvtray
-    fi
-    rm -f /usr/lib/nvtray/nvtray
-    rm -f /usr/lib/nvtray/nvtray-eject-helper
-    rm -f /usr/lib/nvtray/i18n.py
-    rm -f /usr/share/polkit-1/actions/io.github.anlorsp.nvtray.policy
-    rm -f /usr/lib/systemd/user/nvtray.service
+    python - <<'PY'
+import importlib.metadata
+import os
+from pathlib import Path
 
-    for po_file in "$ROOT_DIR"/locales/*/LC_MESSAGES/nvtray.po; do
-        lang=$(basename "$(dirname "$(dirname "$po_file")")")
-        rm -f "/usr/share/locale/$lang/LC_MESSAGES/nvtray.mo"
-        rmdir --ignore-fail-on-non-empty "/usr/share/locale/$lang/LC_MESSAGES" 2>/dev/null || true
-        rmdir --ignore-fail-on-non-empty "/usr/share/locale/$lang" 2>/dev/null || true
-    done
+try:
+    dist = importlib.metadata.distribution("nvtray")
+except importlib.metadata.PackageNotFoundError:
+    raise SystemExit("nvtray is not installed as a Python distribution.")
 
-    rmdir --ignore-fail-on-non-empty /usr/lib/nvtray 2>/dev/null || true
+paths = []
+for entry in dist.files or []:
+    path = Path(dist.locate_file(entry))
+    if path.exists() or path.is_symlink():
+        paths.append(path)
 
-    echo "Removed:"
-    echo "  /usr/bin/nvtray"
-    echo "  /usr/lib/nvtray/"
-    echo "  /usr/share/polkit-1/actions/io.github.anlorsp.nvtray.policy"
-    echo "  /usr/lib/systemd/user/nvtray.service"
-    echo "  nvtray locale files under /usr/share/locale/"
+for path in sorted(paths, key=lambda item: len(item.parts), reverse=True):
+    if path.is_dir() and not path.is_symlink():
+        continue
+    path.unlink(missing_ok=True)
+
+for path in sorted({p.parent for p in paths}, key=lambda item: len(item.parts), reverse=True):
+    try:
+        path.rmdir()
+    except OSError:
+        pass
+
+for script in ("/usr/bin/nvtray", "/usr/bin/nvtray-eject-helper"):
+    try:
+        os.unlink(script)
+    except FileNotFoundError:
+        pass
+
+print("Removed nvtray Python distribution files.")
+PY
+
     echo ""
     echo "If autostart was enabled for the current user, you can disable it with:"
     echo "  systemctl --user disable --now nvtray.service"
