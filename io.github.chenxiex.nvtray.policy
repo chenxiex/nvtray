@@ -4,10 +4,10 @@
   "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
 <policyconfig>
   <vendor>nvtray</vendor>
-  <vendor_url>https://github.com/anlorsp/nvtray</vendor_url>
+  <vendor_url>https://github.com/chenxiex/nvtray</vendor_url>
   <icon_name>video-display</icon_name>
 
-  <action id="io.github.anlorsp.nvtray.eject">
+  <action id="io.github.chenxiex.nvtray.eject">
     <description>Eject NVIDIA GPU from PCI bus</description>
     <message>Authentication is required to eject an NVIDIA GPU.</message>
     <defaults>

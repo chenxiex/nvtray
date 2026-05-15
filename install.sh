@@ -63,7 +63,7 @@ install_nvtray() {
     echo "  /usr/bin/nvtray"
     echo "  /usr/bin/nvtray-eject-helper"
     echo "Installed integration files:"
-    echo "  /usr/share/polkit-1/actions/io.github.anlorsp.nvtray.policy"
+    echo "  /usr/share/polkit-1/actions/io.github.chenxiex.nvtray.policy"
     echo "  /usr/lib/systemd/user/nvtray.service"
     echo ""
     echo "To enable autostart:"

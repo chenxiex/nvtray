@@ -1,6 +1,6 @@
 [Unit]
 Description=NVIDIA GPU Tray Indicator
-Documentation=https://github.com/anlorsp/nvtray
+Documentation=https://github.com/chenxiex/nvtray
 After=graphical-session.target
 
 [Service]
