@@ -8,16 +8,9 @@ on:
       - ".github/.devcontainer/**"
       - ".github/workflows/devcontainer-build-and-push.yml"
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/devcontainer
-      
 jobs:
   build-and-push:
     uses: chenxiex/reusable-workflows/.github/workflows/devcontainer-build-and-push.yml@main
     permissions:
       contents: read
       packages: write
-    with:
-      registry: ${{ env.REGISTRY }}
-      image_name: ${{ env.IMAGE_NAME }}
