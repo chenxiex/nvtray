@@ -10,7 +10,7 @@ on:
 
 jobs:
   build-and-push:
-    uses: chenxiex/reusable-workflows/.github/workflows/devcontainer-build-and-push.yml@main
+    uses: chenxiex/reusable_workflow/.github/workflows/devcontainer-build-and-push.yml@main
     permissions:
       contents: read
       packages: write
