@@ -8,8 +8,9 @@ Linux 托盘程序：检测 NVIDIA PCI 设备并提供“弹出 NVIDIA GPU”菜
 - 仅显示显示控制器设备（PCI class 0x03），过滤音频设备
 - 仅在检测到 NVIDIA 设备时显示托盘图标
 - NVIDIA 设备移除后自动隐藏托盘图标
-- 菜单可对单个 PCI 设备执行弹出（`unbind` + `remove`）
-- **弹出前自动检测占用 GPU 的进程**，如有进程使用则拒绝弹出并显示进程列表
+- 菜单可将 NVIDIA GPU 从 PCI 总线上弹出
+- **弹出前自动检测占用目标 GPU 的进程**，如有进程使用则拒绝弹出并显示进程与设备路径
+- 默认同时移除同一 PCI slot 下的 NVIDIA 关联 function，例如 HDMI 音频、USB xHCI、UCSI function
 - 通过 `pkexec` + `polkit` 获取授权
 
 ## 依赖
@@ -84,6 +85,8 @@ after_eject = [ "$NVTRAY_EJECT_SUCCESS" = "1" ] && notify-send "GPU ejected" "$N
 
 [eject]
 unload_modules = false
+wait_seconds = 5
+remove_related_functions = true
 ```
 
 每个 Hook 会收到以下环境变量：
@@ -101,15 +104,19 @@ unload_modules = false
 
 弹出选项：
 
-- `unload_modules`：设为 `true` 时，helper 会在移除 PCI 设备后尝试卸载 NVIDIA 内核模块。默认禁用。
+- `unload_modules`：设为 `true` 时，helper 会在移除 PCI 设备后尝试卸载 NVIDIA 内核模块。默认禁用，仅建议作为最后手段或调试选项，因为卸载模块可能影响其它 NVIDIA GPU，也可能影响 Vulkan/Wine/DXVK 用户态状态。
+- `wait_seconds`：移除后等待 PCI function 和 DRM 节点消失的秒数。默认值：`5`。
+- `remove_related_functions`：设为 `true` 时，helper 会移除所选显示控制器同一 slot 下的所有 NVIDIA PCI function。默认值：`true`。
 
 ## 说明
 
 - helper 只允许处理格式正确的 PCI ID，并校验设备厂商必须是 NVIDIA。
 - **弹出前会检查是否有进程正在使用 GPU**：
-  - 使用 `fuser` 检测打开 `/dev/nvidia*` 设备的进程
-  - 如检测到进程占用，将拒绝弹出并显示进程名称和 PID
+  - 扫描进程文件描述符，检查目标卡对应的 `/dev/dri/card*`、`/dev/dri/renderD*`、NVIDIA 设备节点和 DRM sysfs 节点
+  - 如检测到进程占用，将拒绝弹出并显示进程名称、PID 和设备路径
 - **弹出流程**：
-  - 直接写入 PCI 设备的 `remove` 接口移除设备
+  - 弹出前将所选显示控制器的 runtime power control 设为 `on`
+  - 先移除同一 slot 下的 NVIDIA 关联 function，再移除显示控制器
+  - 等待 PCI function 和 DRM 节点消失后才报告成功
   - 仅当 `eject.unload_modules = true` 时尝试卸载 NVIDIA 内核模块（nvidia_uvm, nvidia_drm, nvidia_modeset, nvidia）
 - 默认 polkit 策略为管理员认证（活跃会话可缓存认证）。

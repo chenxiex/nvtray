@@ -10,8 +10,9 @@ Linux tray application that detects NVIDIA PCI devices and provides an "Eject NV
 - Only shows display controllers (PCI class `0x03`), filters out audio devices
 - Tray icon is only shown when an NVIDIA device is present
 - Tray icon is automatically hidden after the NVIDIA device is removed
-- Menu item to eject (unbind + remove) individual PCI devices
-- **Checks for processes using the GPU before ejecting** — refuses to eject and lists offending processes if any are found
+- Menu item to eject an NVIDIA GPU from the PCI bus
+- **Checks for processes using the target GPU before ejecting** — refuses to eject and lists offending processes and device paths if any are found
+- Removes related NVIDIA PCI functions on the same slot by default, such as HDMI audio, USB xHCI, and UCSI functions
 - Authorizes privileged operations via `pkexec` + `polkit`
 
 ## Dependencies
@@ -86,6 +87,8 @@ after_eject = [ "$NVTRAY_EJECT_SUCCESS" = "1" ] && notify-send "GPU ejected" "$N
 
 [eject]
 unload_modules = false
+wait_seconds = 5
+remove_related_functions = true
 ```
 
 Each hook receives these environment variables:
@@ -103,16 +106,20 @@ Notes:
 
 Eject options:
 
-- `unload_modules`: when set to `true`, the helper attempts to unload NVIDIA kernel modules after removing the PCI device. This is disabled by default.
+- `unload_modules`: when set to `true`, the helper attempts to unload NVIDIA kernel modules after removing the PCI device. This is disabled by default and is intended as a last-resort/debug option because unloading modules can affect other NVIDIA GPUs and user-space Vulkan/Wine/DXVK state.
+- `wait_seconds`: seconds to wait for the removed PCI functions and DRM nodes to disappear. Default: `5`.
+- `remove_related_functions`: when set to `true`, the helper removes all NVIDIA PCI functions on the same slot as the selected display controller. Default: `true`.
 
 ## Notes
 
 - The helper only accepts well-formed PCI IDs and verifies that the device vendor is NVIDIA.
 - **GPU usage is checked before ejecting**:
-  - Uses `fuser` to detect processes with open `/dev/nvidia*` device files
-  - If any processes are found, ejection is refused and their names and PIDs are shown
+  - Scans process file descriptors for the target card's `/dev/dri/card*`, `/dev/dri/renderD*`, NVIDIA device nodes, and DRM sysfs nodes
+  - If any processes are found, ejection is refused and their names, PIDs, and device paths are shown
 - **Eject procedure**:
-  - Writes to the PCI device's `remove` sysfs interface to remove the device from the bus
+  - Sets the selected display controller's runtime power control to `on` before removal
+  - Removes related NVIDIA PCI functions on the same slot first, then removes the display controller
+  - Waits for the PCI functions and DRM nodes to disappear before reporting success
   - Optionally unloads NVIDIA kernel modules (`nvidia_uvm`, `nvidia_drm`, `nvidia_modeset`, `nvidia`) when `eject.unload_modules = true`
 - The default polkit policy requires administrator authentication (cached for active sessions).
 
