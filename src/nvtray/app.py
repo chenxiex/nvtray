@@ -29,6 +29,8 @@ class AppConfig:
     before_eject: Optional[str]
     after_eject: Optional[str]
     unload_modules: bool = False
+    wait_seconds: int = 5
+    remove_related_functions: bool = True
 
 
 def _get_config_path() -> str:
@@ -57,20 +59,36 @@ def _load_config() -> AppConfig:
     except ValueError as exc:
         logger.warning("Invalid eject.unload_modules value in %s: %s", config_path, exc)
         unload_modules = False
+    try:
+        wait_seconds = parser.getint("eject", "wait_seconds", fallback=5)
+        if wait_seconds < 0:
+            raise ValueError("wait_seconds must be greater than or equal to 0")
+    except ValueError as exc:
+        logger.warning("Invalid eject.wait_seconds value in %s: %s", config_path, exc)
+        wait_seconds = 5
+    try:
+        remove_related_functions = parser.getboolean("eject", "remove_related_functions", fallback=True)
+    except ValueError as exc:
+        logger.warning("Invalid eject.remove_related_functions value in %s: %s", config_path, exc)
+        remove_related_functions = True
 
     loaded = AppConfig(
         gpu_added=hooks.get("gpu_added") or None,
         before_eject=hooks.get("before_eject") or None,
         after_eject=hooks.get("after_eject") or None,
         unload_modules=unload_modules,
+        wait_seconds=wait_seconds,
+        remove_related_functions=remove_related_functions,
     )
     logger.info(
-        "Loaded config from %s (gpu_added=%s, before_eject=%s, after_eject=%s, unload_modules=%s)",
+        "Loaded config from %s (gpu_added=%s, before_eject=%s, after_eject=%s, unload_modules=%s, wait_seconds=%s, remove_related_functions=%s)",
         config_path,
         bool(loaded.gpu_added),
         bool(loaded.before_eject),
         bool(loaded.after_eject),
         loaded.unload_modules,
+        loaded.wait_seconds,
+        loaded.remove_related_functions,
     )
     return loaded
 
@@ -320,6 +338,9 @@ class NvTrayApp:
         cmd = ["pkexec", helper_path]
         if self.config.unload_modules:
             cmd.append("--unload-modules")
+        cmd.extend(["--wait-seconds", str(self.config.wait_seconds)])
+        if not self.config.remove_related_functions:
+            cmd.append("--keep-related-functions")
         cmd.append(pci_id)
         completed = subprocess.run(cmd, capture_output=True, text=True)
         eject_success = completed.returncode == 0
